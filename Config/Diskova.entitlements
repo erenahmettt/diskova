@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Diskova is intentionally NOT sandboxed.
+
+	  A disk space analyser has to be able to walk any folder the user points it
+	  at, including other volumes. Inside the App Sandbox that is only possible
+	  for folders the user picks one at a time, which would make "scan my whole
+	  startup disk" impossible. Diskova is therefore distributed outside the Mac
+	  App Store and relies on the system's normal privacy prompts (and, for
+	  protected locations, Full Disk Access) instead.
+
+	  Diskova never deletes anything outright: removal always goes through the
+	  Trash, so every action stays reversible.
+	-->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>

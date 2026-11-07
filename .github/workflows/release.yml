@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to build (for a manual run)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build for release
+        run: |
+          xcodebuild build \
+            -project Diskova.xcodeproj \
+            -scheme Diskova \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData
+
+      - name: Package
+        id: package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            VERSION="${{ inputs.tag }}"
+            VERSION="${VERSION#v}"
+          fi
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            DerivedData/Build/Products/Release/Diskova.app \
+            "dist/Diskova-$VERSION.zip"
+          shasum -a 256 "dist/Diskova-$VERSION.zip" > "dist/Diskova-$VERSION.zip.sha256"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          cat "dist/Diskova-$VERSION.zip.sha256"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/*.sha256
+          generate_release_notes: true
+          body: |
+            ## Installing
+
+            Unzip and drag `Diskova.app` to `/Applications`.
+
+            This build is **ad-hoc signed and not notarised** — notarising needs
+            a paid Apple Developer account. macOS will refuse the first launch.
+            Either right-click the app and choose *Open*, or run:
+
+            ```
+            xattr -dr com.apple.quarantine /Applications/Diskova.app
+            ```
+
+            The SHA-256 of the archive is published alongside it. If you would
+            rather not trust an unsigned binary, building from source takes
+            about thirty seconds and needs no Apple account.

@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # Piped through `tee` rather than a prettifier so the workflow depends on
+      # nothing that is not already in the runner image.
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Diskova.xcodeproj \
+            -scheme Diskova \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+
+      # The project builds clean under Swift 6 strict concurrency. Treating
+      # that as a gate is the cheapest way to keep it true.
+      - name: Fail on Swift warnings
+        run: |
+          if grep -E '^/.*\.swift:[0-9]+:[0-9]+: warning:' build.log; then
+            echo "::error::Swift compiler warnings found — see above."
+            exit 1
+          fi
+          echo "No Swift warnings."
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Diskova.xcodeproj \
+            -scheme Diskova \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -resultBundlePath TestResults.xcresult 2>&1 | tee test.log
+        env:
+          NSUnbufferedIO: YES
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults.xcresult
