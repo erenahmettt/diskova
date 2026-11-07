@@ -49,9 +49,45 @@ native SwiftUI, open source, and free.
 
 ## Install
 
-### Build it yourself
+### Download a release
 
-No Apple Developer account needed.
+Grab the `.zip` from [Releases](https://github.com/erenahmettt/diskova/releases),
+unzip it, and drag `Diskova.app` to `/Applications`.
+
+**Then read the next section before double-clicking it**, because macOS will
+refuse to open it and the reason is not obvious.
+
+#### Why macOS blocks it, and what to do
+
+Diskova is ad-hoc signed but **not notarised**. Notarising means paying Apple
+$99 a year for a Developer ID, and this is a free weekend project. macOS
+therefore treats the app as unidentified and refuses the first launch.
+
+The old advice for this — right-click the app and choose *Open* — **no longer
+works**. Apple removed that bypass in macOS 15 Sequoia. There are two ways
+through on a current system:
+
+**Either** clear the quarantine flag before you open it, which skips the whole
+dance:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Diskova.app
+```
+
+**Or** use the official route: double-click Diskova and let it be blocked, then
+open **System Settings › Privacy & Security**, scroll down to the *Security*
+section, and click **Open Anyway** next to the message about Diskova. Confirm,
+and enter your password. Do this soon after the blocked launch — the button
+only appears for a while afterwards.
+
+Do not turn Gatekeeper off system-wide to solve this. It would weaken every
+other app on your Mac to install one.
+
+If none of that appeals to you — and it is a perfectly reasonable thing to
+refuse — build from source instead. It needs no Apple account and takes about
+thirty seconds.
+
+### Build it yourself
 
 ```bash
 git clone https://github.com/erenahmettt/diskova.git
@@ -67,21 +103,17 @@ Press ⌘R. Or from the command line:
 xcodebuild -scheme Diskova -configuration Release build
 ```
 
-### Download a release
+### Verifying a download
 
-Grab the `.zip` from [Releases](https://github.com/erenahmettt/diskova/releases),
-unzip it and drag `Diskova.app` to `/Applications`.
-
-Release builds are **not notarised** — notarising requires a paid Apple
-Developer account — so the first launch will be refused by Gatekeeper. Either
-right-click the app and choose *Open*, or clear the quarantine flag:
+Every release ships a `.sha256` file beside the archive. To check that the zip
+you downloaded is the one the build produced:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Diskova.app
+shasum -a 256 -c Diskova-0.1.0.zip.sha256
 ```
 
-Only run that on software you are willing to trust. If you would rather not,
-build from source — it takes about thirty seconds.
+The archive is built by [GitHub Actions](.github/workflows/release.yml) from a
+tagged commit, so the whole path from source to binary is public.
 
 ### Full Disk Access
 

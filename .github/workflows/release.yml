@@ -42,7 +42,10 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent \
             DerivedData/Build/Products/Release/Diskova.app \
             "dist/Diskova-$VERSION.zip"
-          shasum -a 256 "dist/Diskova-$VERSION.zip" > "dist/Diskova-$VERSION.zip.sha256"
+          # Generated from inside dist/ so the checksum file names the archive
+          # alone. With a path in it, `shasum -c` would look for `dist/...`
+          # next to wherever the user downloaded the two files, and fail.
+          ( cd dist && shasum -a 256 "Diskova-$VERSION.zip" > "Diskova-$VERSION.zip.sha256" )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           cat "dist/Diskova-$VERSION.zip.sha256"
 
@@ -59,13 +62,28 @@ jobs:
             Unzip and drag `Diskova.app` to `/Applications`.
 
             This build is **ad-hoc signed and not notarised** — notarising needs
-            a paid Apple Developer account. macOS will refuse the first launch.
-            Either right-click the app and choose *Open*, or run:
+            a paid Apple Developer account — so macOS will refuse the first
+            launch. Right-clicking and choosing *Open* no longer helps; Apple
+            removed that bypass in macOS 15. Do one of these instead:
+
+            **Clear the quarantine flag before opening it:**
 
             ```
             xattr -dr com.apple.quarantine /Applications/Diskova.app
             ```
 
-            The SHA-256 of the archive is published alongside it. If you would
-            rather not trust an unsigned binary, building from source takes
-            about thirty seconds and needs no Apple account.
+            **Or** open Diskova, let it be blocked, then go to
+            **System Settings › Privacy & Security**, scroll to *Security*, and
+            click **Open Anyway**. Do it soon after the blocked launch — the
+            button does not stay there indefinitely.
+
+            ## Verifying this download
+
+            ```
+            shasum -a 256 -c Diskova-<version>.zip.sha256
+            ```
+
+            The archive is built by GitHub Actions from the tagged commit, so
+            the path from source to binary is public. If you would rather not
+            run an unsigned binary at all, building from source needs no Apple
+            account and takes about thirty seconds.
